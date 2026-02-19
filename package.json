@@ -1,0 +1,32 @@
+{
+    "author": "Robert Meissner <rome@live.com>",
+    "bugs": {
+        "url": "https://github.com/vanillaspa/sqlite-database/issues"
+    },
+    "description": "A serverless SQLite database inside your browser.",
+    "dependencies": {
+        "@sqlite.org/sqlite-wasm":"^3.51.2-build6"
+    },
+    "homepage": "https://github.com/vanillaspa/sqlite-database#readme",
+    "keywords": [
+        "Database",
+        "JavaScript",
+        "OPFS",
+        "SPA",
+        "SQLite",
+        "Vanilla",
+        "WebAssembly"
+    ],
+    "license": "Unlicense",
+    "main": "index.js",
+    "name": "@vanillaspa/sqlite-database",
+    "publishConfig": {
+        "access": "public"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/vanillaspa/sqlite-database.git"
+    },
+    "type": "module",
+    "version": "1.0.0"
+}
