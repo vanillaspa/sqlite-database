@@ -1,4 +1,5 @@
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm';
+import { dispatchEvent } from '@vanillaspa/event-bus';
 
 let db = null;
 let sqlite3 = null;
@@ -10,15 +11,17 @@ async function getInstance() {
   return sqlite3;
 }
 
-function reply(result) {
-  postMessage({ type: 'application/json', result });
+function reply(port, result) {
+  port.postMessage({ type: 'application/json', result });
+  port.close();
 }
 
 function replyError(message) {
-  postMessage({ type: 'error', message });
+  port.postMessage({ type: 'error', message });
+  port.close();
 }
 
-function handleSQLiteError(sql, e) {
+function handleSQLiteError(port, sql, e) {
   if (e.message.includes('SQLITE_CANTOPEN')) {
     console.info("Info: No SQLite database available. Upload a new database or reload the page.");
   } else if (e.message.includes('SQLITE_CONSTRAINT_UNIQUE')) {
@@ -26,40 +29,43 @@ function handleSQLiteError(sql, e) {
   } else {
     console.error("Error executing SQL_", sql, e.message);
   }
-  replyError(e.message);
+  replyError(port, e.message);
 }
 
-onmessage = async function ({ data }) {
+onmessage = async function ({ data, ports }) {
   const { action } = data;
+  const port = ports[0] ?? null;
+
   switch (action) {
-    case 'downloadDB': { // special case fire-and-forget - no reply(), no enqueue()
-      try {
-        const byteArray = sqlite3.capi.sqlite3_js_db_export(db);
-        const blob = new Blob([byteArray.buffer], { type: "application/vnd.sqlite3" });
-        postMessage({ type: "application/vnd.sqlite3", blob }); // send the database Blob to the API
-      } catch (e) {
-        console.error('downloadDB failed:', e.message)
-      }
-      break;
-    }
     case 'createDB': {
       const { name } = data;
       try {
         const { newDB, message } = await createDatabase(name)
         db = newDB;
-        reply(message);
+        reply(port, message);
       } catch (e) {
-        replyError(e.message)
+        replyError(port, e.message)
       }
       break;
     }
+    case 'downloadDB': {
+      try {
+        const byteArray = sqlite3.capi.sqlite3_js_db_export(db);
+        const blob = new Blob([byteArray.buffer], { type: "application/vnd.sqlite3" });
+        reply(port, blob);
+      } catch (e) {
+        replyError(port, e.message);
+      }
+      break;
+    }
+
     case 'executeQuery': {
       const { sql } = data;
       try {
         const result = db.exec({ sql, returnValue: "resultRows" });
-        reply(result);
+        reply(port, result);
       } catch (e) {
-        handleSQLiteError(sql, e)
+        handleSQLiteError(port, sql, e)
       }
       break;
     }
@@ -75,9 +81,9 @@ onmessage = async function ({ data }) {
           const row = stmt.get([]);
           result.push(Object.fromEntries(columns.map((columnName, index) => [columnName, row[index]])));
         }
-        reply(result);
+        reply(port, result);
       } catch (e) {
-        handleSQLiteError(sql, e);
+        handleSQLiteError(port, sql, e);
       } finally {
         stmt?.finalize();
       }
@@ -87,18 +93,18 @@ onmessage = async function ({ data }) {
       const { name, arrayBuffer } = data;
       try {
         const message = await uploadDatabase(name, arrayBuffer)
-        reply(message);
+        reply(port, message);
       } catch (e) {
-        replyError(e.message);
+        replyError(port, e.message);
       }
       break;
     }
     case 'closeDB': {
       try {
         closeDB();
-        reply(null);
+        reply(port, null);
       } catch (e) {
-        replyError(e.message);
+        replyError(port, e.message);
       }
       break;
     }

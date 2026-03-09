@@ -1,6 +1,5 @@
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm';
-// https://www.npmjs.com/package/@sqlite.org/sqlite-wasm
-// https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers
+import { addEventListener, dispatchEvent } from '@vanillaspa/event-bus';
 
 if (!window.Worker) throw new Error(`Your browser doesn't support web workers.`);
 export const name = "sqlite"; // module name
@@ -27,7 +26,6 @@ function initializeWorker(name) {
 
 function enqueue(worker, payload) {
     const { port1, port2 } = new MessageChannel();
-
     return new Promise((resolve, reject) => {
         port1.onmessage = ({ data }) => {
             port1.close();
@@ -39,32 +37,30 @@ function enqueue(worker, payload) {
             port1.close();
             reject(new Error('MessageChannel deserialization error'));
         };
-
         worker.postMessage(payload, [port2]);
     })
 }
 
 // Public API
-export function downloadDB(name = 'default') {
-    getWorker(name).postMessage({ action: 'downloadDB' });
-}
-
 export function createDB(name = 'default') {
-    initializeWorker(name); // in try-catch?
+    initializeWorker(name);
     return enqueue(getWorker(name), { action: 'createDB', name });
 }
 
 export async function deleteAndTerminateDB(name) {
     const worker = getWorker(name);
-
     await enqueue(worker, { action: 'closeDB' })
-
     const root = await navigator.storage.getDirectory();
     const fileHandle = await root.getFileHandle(`${name}.sqlite3`).catch(() => null);
     if (fileHandle) await fileHandle.remove();
-
     worker.terminate();
     workers.delete(name);
+}
+
+export function downloadDB(name = 'default') {
+    enqueue(getWorker(name), { action: 'downloadDB' }).then(blob => {
+        dispatchEvent(new CustomEvent('sqlite:download', { detail: { blob, name } }))
+    })
 }
 
 export function executeQuery(sql, name = 'default') {
@@ -85,7 +81,7 @@ export function uploadDB(fileName, arrayBuffer) {
 }
 
 export function terminate(name = 'default') {
-    let worker = workers.get(name);
+    const worker = workers.get(name);
     if (worker) {
         worker.terminate();
         workers.delete(name);
@@ -95,3 +91,13 @@ export function terminate(name = 'default') {
 export function getWorkers() {
     return workers;
 }
+
+addEventListener('sqlite:download', (event) => {
+    const { blob, name } = event.detail;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${name}.sqlite3`;
+    a.click();
+    URL.revokeObjectURL(url);
+});
