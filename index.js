@@ -1,5 +1,5 @@
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm';
-import { addEventListener, dispatchEvent } from '@vanillaspa/event-bus';
+import { dispatchEvent } from '@vanillaspa/event-bus';
 
 if (!window.Worker) throw new Error(`Your browser doesn't support web workers.`);
 export const name = "sqlite"; // module name
@@ -92,12 +92,12 @@ export function getWorkers() {
     return workers;
 }
 
-addEventListener('sqlite:download', (event) => {
-    const { blob, name } = event.detail;
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${name}.sqlite3`;
-    a.click();
-    URL.revokeObjectURL(url);
-});
+// addEventListener('sqlite:download', (event) => {
+//     const { blob, name } = event.detail;
+//     const url = URL.createObjectURL(blob);
+//     const a = document.createElement('a');
+//     a.href = url;
+//     a.download = `${name}.sqlite3`;
+//     a.click();
+//     URL.revokeObjectURL(url);
+// });

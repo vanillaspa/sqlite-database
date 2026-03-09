@@ -1,5 +1,4 @@
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm';
-import { dispatchEvent } from '@vanillaspa/event-bus';
 
 let db = null;
 let sqlite3 = null;
@@ -37,6 +36,15 @@ onmessage = async function ({ data, ports }) {
   const port = ports[0] ?? null;
 
   switch (action) {
+    case 'closeDB': {
+      try {
+        closeDB();
+        reply(port, null);
+      } catch (e) {
+        replyError(port, e.message);
+      }
+      break;
+    }
     case 'createDB': {
       const { name } = data;
       try {
@@ -58,7 +66,6 @@ onmessage = async function ({ data, ports }) {
       }
       break;
     }
-
     case 'executeQuery': {
       const { sql } = data;
       try {
@@ -94,15 +101,6 @@ onmessage = async function ({ data, ports }) {
       try {
         const message = await uploadDatabase(name, arrayBuffer)
         reply(port, message);
-      } catch (e) {
-        replyError(port, e.message);
-      }
-      break;
-    }
-    case 'closeDB': {
-      try {
-        closeDB();
-        reply(port, null);
       } catch (e) {
         replyError(port, e.message);
       }
