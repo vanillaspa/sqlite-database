@@ -19,9 +19,9 @@ function getWorker(name = 'default') {
 }
 
 function initializeWorker(name) {
-    if (workers.has(name)) throw new Error(`Worker "${name}" already exists.`);
-    const worker = new Worker(new URL('./sqliteWorker.js', import.meta.url), { type: 'module' });
-    workers.set(name, worker);
+    if (!workers.has(name)) {
+        workers.set(name, new Worker(new URL('./sqliteWorker.js', import.meta.url), { type: 'module' }));
+    }
 }
 
 function enqueue(worker, payload) {
