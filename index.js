@@ -43,7 +43,7 @@ function enqueue(worker, payload) {
 function fire(type, detail, context) {
     dispatchEvent(new CustomEvent(type, { detail: { ...detail, target: context } }));
 }
-// event-bus listener
+// No public API, but event-bus listener
 addEventListener('sqlite:createDB', async (event) => {
     const { name, target } = event.datail;
     try {
@@ -59,7 +59,7 @@ addEventListener('sqlite:query', async (event) => {
     const { sql, name, target } = event.detail;
     try {
         const result = await enqueue(workers.get(name), { action: "executeQuery", sql });
-        fire('sqlite:result', { result, sql }, context);
+        fire('sqlite:result', { result, sql }, target);
     } catch (error) {
         fire('sqlite:error', { error: error.message, action: 'executeQuery', sql }, target);
     }

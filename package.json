@@ -10,7 +10,6 @@
     },
     "homepage": "https://github.com/vanillaspa/sqlite-database#readme",
     "keywords": [
-        "BroadcastChannel",
         "Database",
         "EventBus",
         "JavaScript",
@@ -32,5 +31,5 @@
         "url": "git+https://github.com/vanillaspa/sqlite-database.git"
     },
     "type": "module",
-    "version": "1.4.0"
+    "version": "1.4.1"
 }
