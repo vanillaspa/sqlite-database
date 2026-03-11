@@ -2,7 +2,6 @@ import sqlite3InitModule from '@sqlite.org/sqlite-wasm';
 
 let db = null;
 let sqlite3 = null;
-let port;
 
 async function getInstance() {
   if (!sqlite3) {
@@ -11,17 +10,17 @@ async function getInstance() {
   return sqlite3;
 }
 
-function reply(result) {
+function reply(port, result) {
   port.postMessage({ type: 'application/json', result });
   port.close();
 }
 
-function replyError(message) {
+function replyError(port, message) {
   port.postMessage({ type: 'error', message });
   port.close();
 }
 
-function handleSQLiteError(sql, e) {
+function handleSQLiteError(port, sql, e) {
   if (e.message.includes('SQLITE_CANTOPEN')) {
     console.info("Info: No SQLite database available. Upload a new database or reload the page.");
   } else if (e.message.includes('SQLITE_CONSTRAINT_UNIQUE')) {
@@ -34,15 +33,15 @@ function handleSQLiteError(sql, e) {
 
 onmessage = async function ({ data, ports }) {
   const { action } = data;
-  port = ports[0] ?? null;
+  const port = ports[0] ?? null;
 
   switch (action) {
     case 'closeDB': {
       try {
         closeDB();
-        reply(null);
+        reply(port, null);
       } catch (e) {
-        replyError(e.message);
+        replyError(port, e.message);
       }
       break;
     }
@@ -51,9 +50,9 @@ onmessage = async function ({ data, ports }) {
       try {
         const { newDB, message } = await createDatabase(name)
         db = newDB;
-        reply(message);
+        reply(port, message);
       } catch (e) {
-        replyError(e.message)
+        replyError(port, e.message)
       }
       break;
     }
@@ -61,9 +60,9 @@ onmessage = async function ({ data, ports }) {
       try {
         const byteArray = sqlite3.capi.sqlite3_js_db_export(db);
         const blob = new Blob([byteArray.buffer], { type: "application/vnd.sqlite3" });
-        reply(blob);
+        reply(port, blob);
       } catch (e) {
-        replyError(e.message);
+        replyError(port.e.message);
       }
       break;
     }
@@ -71,9 +70,9 @@ onmessage = async function ({ data, ports }) {
       const { sql } = data;
       try {
         const result = db.exec({ sql: sql.sql, returnValue: "resultRows" });
-        reply(result);
+        reply(port, result);
       } catch (e) {
-        handleSQLiteError(sql, e)
+        handleSQLiteError(port, sql, e)
       }
       break;
     }
@@ -89,9 +88,9 @@ onmessage = async function ({ data, ports }) {
           const row = stmt.get([]);
           result.push(Object.fromEntries(columns.map((columnName, index) => [columnName, row[index]])));
         }
-        reply(result);
+        reply(port, result);
       } catch (e) {
-        handleSQLiteError(sql, e);
+        handleSQLiteError(port, sql, e);
       } finally {
         stmt?.finalize();
       }
@@ -101,9 +100,9 @@ onmessage = async function ({ data, ports }) {
       const { name, arrayBuffer } = data;
       try {
         const message = await uploadDatabase(name, arrayBuffer)
-        reply(message);
+        reply(port, message);
       } catch (e) {
-        replyError(e.message);
+        replyError(port, e.message);
       }
       break;
     }
