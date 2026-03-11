@@ -5,7 +5,7 @@ if (!window.Worker) throw new Error(`Your browser doesn't support web workers.`)
 
 export const name = "sqlite";
 
-try { // inital Test (still needed?)
+try {
     const sqlite3 = await sqlite3InitModule({ print: console.log, printErr: console.error });
     console.log('SQLite3 version:', sqlite3.version.libVersion);
 } catch (err) {
@@ -69,7 +69,7 @@ addEventListener('sqlite:statement', async (event) => {
     const { sql, values, name, target } = event.detail;
     try {
         const result = await enqueue(workers.get(name), { action: "prepareStatement", sql, values });
-        fire('sqlite:reqult', { result, sql }, target);
+        fire('sqlite:result', { result, sql }, target);
     } catch (error) {
         fire('sqlite:error', { error: error.message, action: 'prepareStatement', sql }, target);
     }
