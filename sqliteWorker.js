@@ -69,7 +69,7 @@ onmessage = async function ({ data, ports }) {
     case 'executeQuery': {
       const { sql } = data;
       try {
-        const result = db.exec({ sql: sql.sql, returnValue: "resultRows" });
+        const result = db.exec({ sql , returnValue: "resultRows" });
         reply(port, result);
       } catch (e) {
         handleSQLiteError(port, sql, e)
