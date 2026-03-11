@@ -45,7 +45,7 @@ function fire(type, detail, context) {
 }
 // No public API, but event-bus listener
 addEventListener('sqlite:createDB', async (event) => {
-    const { name, target } = event.datail;
+    const { name, target } = event.detail;
     try {
         initializeWorker(name);
         const result = await enqueue(workers.get(name), { action: 'createDB', name });
