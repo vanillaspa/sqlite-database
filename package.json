@@ -5,14 +5,15 @@
     },
     "description": "A serverless SQLite database inside your browser.",
     "dependencies": {
-        "@sqlite.org/sqlite-wasm":"^3.51.2-build6",
-        "@vanillaspa/event-bus": "1.1.0"
+        "@sqlite.org/sqlite-wasm":"latest",
+        "@vanillaspa/event-bus": "latest"
     },
     "homepage": "https://github.com/vanillaspa/sqlite-database#readme",
     "keywords": [
         "Database",
         "EventBus",
         "JavaScript",
+        "MessageChannel",
         "OPFS",
         "SPA",
         "SQLite",
@@ -30,5 +31,5 @@
         "url": "git+https://github.com/vanillaspa/sqlite-database.git"
     },
     "type": "module",
-    "version": "1.2.0"
+    "version": "1.4.3"
 }

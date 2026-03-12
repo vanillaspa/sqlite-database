@@ -1,5 +1,4 @@
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm';
-import { dispatchEvent } from '@vanillaspa/event-bus';
 
 let db = null;
 let sqlite3 = null;
@@ -16,7 +15,7 @@ function reply(port, result) {
   port.close();
 }
 
-function replyError(message) {
+function replyError(port, message) {
   port.postMessage({ type: 'error', message });
   port.close();
 }
@@ -37,6 +36,15 @@ onmessage = async function ({ data, ports }) {
   const port = ports[0] ?? null;
 
   switch (action) {
+    case 'closeDB': {
+      try {
+        closeDB();
+        reply(port, null);
+      } catch (e) {
+        replyError(port, e.message);
+      }
+      break;
+    }
     case 'createDB': {
       const { name } = data;
       try {
@@ -54,15 +62,14 @@ onmessage = async function ({ data, ports }) {
         const blob = new Blob([byteArray.buffer], { type: "application/vnd.sqlite3" });
         reply(port, blob);
       } catch (e) {
-        replyError(port, e.message);
+        replyError(port.e.message);
       }
       break;
     }
-
     case 'executeQuery': {
       const { sql } = data;
       try {
-        const result = db.exec({ sql, returnValue: "resultRows" });
+        const result = db.exec({ sql , returnValue: "resultRows" });
         reply(port, result);
       } catch (e) {
         handleSQLiteError(port, sql, e)
@@ -94,15 +101,6 @@ onmessage = async function ({ data, ports }) {
       try {
         const message = await uploadDatabase(name, arrayBuffer)
         reply(port, message);
-      } catch (e) {
-        replyError(port, e.message);
-      }
-      break;
-    }
-    case 'closeDB': {
-      try {
-        closeDB();
-        reply(port, null);
       } catch (e) {
         replyError(port, e.message);
       }
