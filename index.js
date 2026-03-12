@@ -1,5 +1,4 @@
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm';
-import { addEventListener, dispatchEvent } from '@vanillaspa/event-bus';
 
 if (!window.Worker) throw new Error(`Your browser doesn't support web workers.`);
 
@@ -10,17 +9,6 @@ try {
     console.log('SQLite3 version:', sqlite3.version.libVersion);
 } catch (err) {
     console.error('Initialization error:', err.name, err.message);
-}
-
-const workers = new Map();
-export function getWorkers() {
-    return workers;
-}
-
-function initializeWorker(name) {
-    if (!workers.has(name)) {
-        workers.set(name, new Worker(new URL('./sqliteWorker.js', import.meta.url), { type: 'module' }));
-    }
 }
 
 function enqueue(worker, payload) {
@@ -40,95 +28,62 @@ function enqueue(worker, payload) {
     })
 }
 
-function fire(type, detail, context) {
-    dispatchEvent(new CustomEvent(type, { detail: { ...detail, target: context } }));
+const workers = new Map();
+function getWorker(name) {
+    if (!workers.has(name)) {
+        workers.set(name, new Worker(new URL('./sqliteWorker.js', import.meta.url), { type: 'module' }));
+    }
+    return workers.get(name);
 }
-// No public API, but event-bus listener
-addEventListener('sqlite:createDB', async (event) => {
-    const { name, target } = event.detail;
-    try {
-        initializeWorker(name);
-        const result = await enqueue(workers.get(name), { action: 'createDB', name });
-        fire('sqlite:ready', { result, name }, target);
-    } catch (error) {
-        fire('sqlite:error', { error: error.message, action: 'createDB' }, target);
-    }
-}, import.meta);
 
-addEventListener('sqlite:query', async (event) => {
-    const { sql, name, target } = event.detail;
-    try {
-        const result = await enqueue(workers.get(name), { action: "executeQuery", sql });
-        fire('sqlite:result', { result, sql }, target);
-    } catch (error) {
-        fire('sqlite:error', { error: error.message, action: 'executeQuery', sql }, target);
-    }
-}, import.meta);
+export function getWorkers() {
+    return workers;
+}
 
-addEventListener('sqlite:statement', async (event) => {
-    const { sql, values, name, target } = event.detail;
-    try {
-        const result = await enqueue(workers.get(name), { action: "prepareStatement", sql, values });
-        fire('sqlite:result', { result, sql }, target);
-    } catch (error) {
-        fire('sqlite:error', { error: error.message, action: 'prepareStatement', sql }, target);
-    }
-}, import.meta)
+export function createDB(name) {
+    return enqueue(getWorker(name), { action: 'createDB', name });
+}
 
-addEventListener('sqlite:upload', async (event) => {
-    const { fileName, arrayBuffer, target } = event.detail;
-    try {
-        const [name, extension] = fileName.split(".");
-        if (!['sqlite', 'sqlite3'].includes(extension)) {
-            throw new Error(`UnsupportedError: Unsupported extension ".${extension}"`);
-        }
-        if (!workers.has(name)) initializeWorker(name);
-        const result = await enqueue(workers.get(name), { action: 'uploadDB', name, arrayBuffer });
-        fire('sqlite:upload', { result, name }, target)
-    } catch (error) {
-        fire('sqlite:error', { error: error.message, action: 'uploadDB' }, target);
-    }
-}, import.meta);
+export async function closeDB(name) {
+    const worker = getWorker(name);
+    await enqueue(worker, { action: 'closeDB' });
+    worker.terminate();
+    workers.delete(name);
+}
 
-addEventListener('sqlite:download', async (event) => {
-    const { name, target } = event.detail;
-    try {
-        const blob = await enqueue(workers.get(name), { action: 'downloadDB' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${name}.sqlite3`;
-        a.click();
-        URL.revokeObjectURL(url)
-        fire('sqlite:downloaded', { name }, target);
-    } catch (error) {
-        fire('sqlite:error', { error: error.message, action: 'downloadDB' }, target);
-    }
-}, import.meta);
+export async function deleteDB(name) {
+    const worker = getWorker(name);
+    await enqueue(worker, { action: 'closeDB' });
+    const root = await navigator.storage.getDirectory();
+    const fileHandle = await root.getFileHandle(`${name}.sqlite3`).catch(() => null);
+    if (fileHandle) await fileHandle.remove();
+    worker.terminate();
+    workers.delete(name);
+}
 
-addEventListener('sqlite:closeDB', async (event) => {
-    const { name, target } = event.detail;
-    try {
-        await enqueue(workers.get(name), { action: 'closeDB' });
-        workers.get(name).terminate();
-        workers.delete(name);
-        fire('sqlite:closed', { name }, target);
-    } catch (error) {
-        fire('sqlite:error', { error: error.message, action: 'closeDB' }, target);
-    }
-}, import.meta);
+export function executeQuery(sql, name) {
+    return enqueue(getWorker(name), { action: 'executeQuery', sql });
+}
 
-addEventListener('sqlite:deleteDB', async (event) => {
-    const { name, target } = event.detail;
-    try {
-        await enqueue(workers.get(name), { action: 'closeDB' });
-        const root = await navigator.storage.getDirectory();
-        const fileHandle = await root.getFileHandle(`${name}.sqlite3`).catch(() => null);
-        if (fileHandle) await fileHandle.remove();
-        workers.get(name).terminate();
-        workers.delete(name);
-        fire('sqlite:deleted', { name }, target);
-    } catch (error) {
-        fire('sqlite:error', { error: error.message, action: 'deleteDB' }, target);
+export function executeStatement(sql, values, name) {
+    return enqueue(getWorker(name), { action: 'prepareStatement', sql, values });
+}
+
+export function uploadDB(fileName, arrayBuffer) {
+    const [name, extension] = fileName.split('.'); // TODO handle multiple dots in fileName
+    if (!['sqlite', 'sqlite3'].includes(extension)) {
+        throw new Error(`UnsupportedError: Unsupported extension ".${extension}"`);
     }
-}, import.meta);
+    return enqueue(getWorker(name), { action: 'uploadDB', name, arrayBuffer });
+}
+
+export async function downloadDB(name) {
+    const blob = await enqueue(getWorker(name), { action: 'downloadDB' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${name}.sqlite3`;
+    a.click();
+    URL.revokeObjectURL(url);
+    return blob;
+}

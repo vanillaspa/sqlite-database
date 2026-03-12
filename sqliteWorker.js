@@ -10,7 +10,7 @@ async function getInstance() {
   return sqlite3;
 }
 
-function reply(port, result) {
+function reply(port, result) { // TODO: check json coverage
   port.postMessage({ type: 'application/json', result });
   port.close();
 }

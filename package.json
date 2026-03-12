@@ -5,8 +5,7 @@
     },
     "description": "A serverless SQLite database inside your browser.",
     "dependencies": {
-        "@sqlite.org/sqlite-wasm":"latest",
-        "@vanillaspa/event-bus": "latest"
+        "@sqlite.org/sqlite-wasm":"latest"
     },
     "homepage": "https://github.com/vanillaspa/sqlite-database#readme",
     "keywords": [
@@ -31,5 +30,5 @@
         "url": "git+https://github.com/vanillaspa/sqlite-database.git"
     },
     "type": "module",
-    "version": "1.4.3"
+    "version": "1.6.0"
 }
