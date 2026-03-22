@@ -1,4 +1,10 @@
 // @vanillaspa/sqlite-database/contract.js
+// The Contract is:
+// You have to describe the core API from index.js
+// with events definitions. You getn an Event API.
+// Define events that trigger handlers.
+// Call the handlers directly from the core API.
+// The contract must be made known to the "other side" component.
 // use import * as SqliteContract from '@vanillaspa/sqlite-database/contract';
 // window[SqliteContract.name] = Object.freeze(SqliteContract);
 // then
