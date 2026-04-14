@@ -143,7 +143,7 @@ onmessage = async function ({ data, ports }) {
       try {
         stmt = db.prepare(sql);
         stmt.bind(values);
-        const columns = stmt.getColumnNames();
+        const columns = stmt.columnCount > 0 ? stmt.getColumnNames() : [];
         const result = [];
         while (stmt.step()) {
           const row = stmt.get([]);
