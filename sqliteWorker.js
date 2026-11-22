@@ -130,7 +130,7 @@ onmessage = async function ({ data, ports }) {
     case 'executeQuery': {
       const { sql } = data;
       try {
-        const result = db.exec({ sql , returnValue: "resultRows" });
+        const result = db.exec({ sql, returnValue: "resultRows" });
         reply(port, result);
       } catch (e) {
         handleSQLiteError(port, sql, e)
@@ -183,15 +183,19 @@ onmessage = async function ({ data, ports }) {
  */
 async function createDatabase(name) {
   const instance = await getInstance();
-  return 'opfs' in instance
-    ? {
-      newDB: new instance.oo1.OpfsDb(`/${name}.sqlite3`),
+  if (instance.capi.sqlite_vfs_find('opfs')) { // sqlite3_js_opfs_available()
+    db = new instance.oo1.OpfsDb(`/${name}.sqlite3`);
+    return {
+      newDB: db,
       message: `OPFS is available, created persisted database at /${name}.sqlite3`
     }
-    : {
-      newDB: new instance.oo1.DB(`/${name}.sqlite3`, 'ct'),
+  } else {
+    db = new instance.oo1.DB(`/${name}.sqlite3`, 'ct');
+    return {
+      newDB: db,
       message: `OPFS is not available, created transient database /${name}.sqlite3`
     };
+  }
 }
 
 /**
