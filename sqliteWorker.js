@@ -31,7 +31,7 @@ let sqlite3 = null;
  */
 async function getInstance() {
   if (!sqlite3) {
-    sqlite3 = await sqlite3InitModule({ print: console.log, printErr: console.error });
+    sqlite3 = await sqlite3InitModule();
   }
   return sqlite3;
 }
@@ -183,7 +183,7 @@ onmessage = async function ({ data, ports }) {
  */
 async function createDatabase(name) {
   const instance = await getInstance();
-  if (instance.capi.sqlite_vfs_find('opfs')) { // sqlite3_js_opfs_available()
+  if (instance.capi.sqlite3_vfs_find('opfs')) { // sqlite3_js_opfs_available()
     db = new instance.oo1.OpfsDb(`/${name}.sqlite3`);
     return {
       newDB: db,

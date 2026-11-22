@@ -1,5 +1,5 @@
 /**
- * @fileoverview SQLite-WASM facade — one dedicated Worker per named database.
+ * @fileoverview SQLite-WASM facade - one dedicated Worker per named database.
  *
  * Each database runs in its own `Worker` (`sqliteWorker.js`). Communication
  * uses `MessageChannel` so responses are private to the caller and never
@@ -8,7 +8,7 @@
  *
  * Exposed on `window.sqlite` (frozen) by `main.js` after import.
  *
- * Components should **not** call these functions directly — instead dispatch
+ * Components should **not** call these functions directly - instead dispatch
  * `sqlite:*` events via the event contract and let the bridge component
  * (`<sqlite-notes>` / `<sqlite-workers>`) translate.
  *
@@ -23,7 +23,7 @@ if (!window.Worker) throw new Error(`Your browser doesn't support web workers.`)
 export const name = "sqlite";
 
 try {
-    const sqlite3 = await sqlite3InitModule({ print: console.log, printErr: console.error });
+    const sqlite3 = await sqlite3InitModule();
     console.log('SQLite3 version:', sqlite3.version.libVersion);
 } catch (err) {
     console.error('Initialization error:', err.name, err.message);
@@ -32,7 +32,7 @@ try {
 /**
  * Send a message to `worker` and return a Promise that settles with the reply.
  *
- * Uses a `MessageChannel` so each call gets its own private port — replies
+ * Uses a `MessageChannel` so each call gets its own private port - replies
  * cannot cross between concurrent calls. `port2` is transferred to the worker.
  *
  * @param {Worker} worker
@@ -57,7 +57,7 @@ function enqueue(worker, payload) {
     })
 }
 
-/** @type {Map<string, Worker>} Database name → its dedicated worker. */
+/** @type {Map<string, Worker>} Database name -> its dedicated worker. */
 const workers = new Map();
 
 /**
@@ -142,7 +142,7 @@ export function executeQuery(sql, name) {
 }
 
 /**
- * Execute a parameterised SQL statement using positional placeholders (`$1`, `$2`, …).
+ * Execute a parameterised SQL statement using positional placeholders (`$1`, `$2`, ...).
  *
  * Prefer this over {@link executeQuery} for any statement that includes
  * user-supplied values.
@@ -150,7 +150,7 @@ export function executeQuery(sql, name) {
  * For SELECT: resolves with `Array<Record<string, any>>` (rows as column-keyed objects).
  * For non-SELECT: resolves with the sqlite-wasm result value.
  *
- * @param {string} sql - SQL with `$1`, `$2`, … placeholders.
+ * @param {string} sql - SQL with `$1`, `$2`, ... placeholders.
  * @param {Array<any>} values - Positional values to bind.
  * @param {string} name - Database name.
  * @returns {Promise<Array<Record<string, any>>|any>}
